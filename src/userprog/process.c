@@ -44,18 +44,21 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
     
-  char** argv;
+  char** argv = malloc(strlen(file_name)+1); //fixes the kernel panic that happened before, new kernel panic emerged.
+											 //It may be part of the test and not caused by this. 
+											 //Complete the rest of argument passing before changing this is my suggestion.
   int argc=0;
   char *token, *save_ptr;
-   for (token = strtok_r (fn_copy, " ", &save_ptr); token != NULL;
+  for (token = strtok_r (fn_copy, " ", &save_ptr); token != NULL;
         token = strtok_r (NULL, " ", &save_ptr)) {
      printf ("'%s'\n", token);
-     argv[argc]=token;
+     strlcpy(argv[argc], token, strlen(token)+1);
      argc++;
- }
+	}
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (argv[0], PRI_DEFAULT, start_process, argv);
+  free(argv);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -460,6 +463,7 @@ setup_stack (void **esp)
         palloc_free_page (kpage);
     }
   return success;
+  hex_dump(PHYS_BASE - 128, PHYS_BASE - 128, 128, true);
 }
 
 /* Adds a mapping from user virtual address UPAGE to kernel
