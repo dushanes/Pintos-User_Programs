@@ -43,23 +43,13 @@ process_execute (const char *file_name)
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
-    
-  char** argv = malloc(strlen(file_name)+1); //fixes the kernel panic that happened before, new kernel panic emerged.
-											 //It may be part of the test and not caused by this. 
-											 //Complete the rest of argument passing before changing this is my suggestion.
-  int argc=0;
-  char *token, *save_ptr;
-  for (token = strtok_r (fn_copy, " ", &save_ptr); token != NULL;
-        token = strtok_r (NULL, " ", &save_ptr)) {
-     printf ("'%s'\n", token);
-     strlcpy(argv[argc], token, strlen(token)+1);
-     printf ("'%s'\n", argv[argc]);
-     argc++;
-	}
 
+  char * fn, *save_ptr;
+  fn = malloc(strlen(file_name)+1);
+  fn = strtok_r (file_name, " ", &save_ptr);
+  printf("'%s'\n", fn);
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (argv[0], PRI_DEFAULT, start_process, argv);
-  free(argv);
+  tid = thread_create (fn, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -217,7 +207,7 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp, char * file_name);
+static bool setup_stack (void **esp, const char * file_name);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -243,8 +233,11 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
+  char * token, *save_ptr;
+  token = strtok_r (file_name, " ", &save_ptr);
+  
   /* Open executable file. */
-  file = filesys_open (file_name);
+  file = filesys_open (token);
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", file_name);
@@ -449,7 +442,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
-setup_stack (void **esp, char * file_name) 
+setup_stack (void **esp, const char * file_name) 
 {
   uint8_t *kpage;
   bool success = false;
@@ -463,7 +456,20 @@ setup_stack (void **esp, char * file_name)
       else
         palloc_free_page (kpage);
     }
-  
+
+  char** argv = malloc(strlen(file_name)+1); //fixes the kernel panic that happened before, new kernel panic emerged.
+											 //It may be part of the test and not caused by this. 
+											 //Complete the rest of argument passing before changing this is my suggestion.
+  int argc=0;
+  char *token, *save_ptr;
+  for (token = strtok_r (file_name, " ", &save_ptr); token != NULL;
+        token = strtok_r (NULL, " ", &save_ptr)) {
+     printf ("'%s'\n", token);
+     strlcpy(argv[argc], token, strlen(token)+1);
+     printf ("'%s'\n", argv[argc]);
+     argc++;
+	}
+
   hex_dump(PHYS_BASE - 128, PHYS_BASE - 128, 128, true);
   return success;
 }
