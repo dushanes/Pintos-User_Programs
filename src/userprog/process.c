@@ -47,15 +47,18 @@ process_execute (const char *file_name)
   char * pass_name;
   char * save_ptr;
   
-  pass_name = malloc(strlen(file_name)+1);
+  pass_name = palloc_get_page (0);
+  if (pass_name == NULL)
+    return TID_ERROR;
   strlcpy(pass_name, file_name, strlen(file_name)+1);
   pass_name = strtok_r (pass_name, " ", &save_ptr);
   
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (pass_name, PRI_DEFAULT, start_process, fn_copy);
-  free(pass_name);
+
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
+    palloc_free_page(pass_name);
   return tid;
 }
 
@@ -64,8 +67,8 @@ process_execute (const char *file_name)
 static void
 start_process (void *file_name_)
 {
-  char** argv=file_name_;
-  char *file_name = argv[0];
+  //char** argv=file_name_;
+  char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
 
@@ -459,43 +462,49 @@ setup_stack (void **esp, const char * file_name)
         palloc_free_page (kpage);
     }
 
-  char** argv; //fixes the kernel panic that happened before, new kernel panic emerged.
+  char* argv[PGSIZE]; //fixes the kernel panic that happened before, new kernel panic emerged.
 											 //It may be part of the test and not caused by this. 
 											 //Complete the rest of argument passing before changing this is my suggestion.
   int argc = 0;
   char * save_ptr, *safe_cpy, *token;
   safe_cpy = palloc_get_page(0);
+  if (safe_cpy == NULL)
+    return TID_ERROR;
   strlcpy(safe_cpy, file_name, PGSIZE);
+  
+  void* esp_copy=*esp;
 
   for (token = strtok_r (safe_cpy, " ", &save_ptr); token != NULL;
         token = strtok_r (NULL, " ", &save_ptr)) {
-	 esp = esp - (strlen(token)+1);
-     strlcpy(*esp, token, strlen(token)+1);
-     argv[argc] = esp;
+	 *esp = *esp - strlen(token)+1;
+     strlcpy(*esp, token, PGSIZE);
+     argv[argc] = *esp;
      argc++;
 	}
-	
+  int zero=0;
+  
   while((int)*esp % 4 != 0)
   {
-	  *esp = *esp - sizeof(char);
-	  memcpy(*esp, 0, sizeof(char));
+	  esp_copy = esp_copy - sizeof(char);
+	  memcpy(esp_copy, &zero, sizeof(char));
   }
   
   for(int i = argc-1; i >= 0; i--){
-	  *esp = *esp - sizeof(char);
-	  memcpy(*esp, &argv[i], sizeof(char));
+	  esp_copy= esp_copy - sizeof(int);
+	  memcpy(esp_copy, argv[i], sizeof(int));
   } 
 
-  *esp = *esp - sizeof(char);
-  memcpy(*esp, &argv, sizeof(char));
+  esp_copy = esp_copy - sizeof(int);
+  memcpy(esp_copy, argv, sizeof(int));
   
-  *esp = *esp - sizeof(char);
-  memcpy(*esp,argc,sizeof(char));
+  esp_copy = esp_copy - sizeof(int);
+  memcpy(esp_copy,&argc,sizeof(int));
 
-  *esp = *esp - sizeof(char);
-  memcpy(*esp,0,sizeof(char));
-
-  free(argv);
+  esp_copy = esp_copy - sizeof(int);
+  memcpy(esp_copy,&zero,sizeof(int));
+  
+  
+  
   
   hex_dump(PHYS_BASE - 128, PHYS_BASE - 128, 128, true);
   return success;
