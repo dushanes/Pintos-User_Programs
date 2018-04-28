@@ -44,12 +44,16 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
-  char * fn, *save_ptr;
-  fn = malloc(strlen(file_name)+1);
-  fn = strtok_r (file_name, " ", &save_ptr);
-  printf("'%s'\n", fn);
+  char * pass_name;
+  char * save_ptr;
+  
+  pass_name = malloc(strlen(file_name)+1);
+  strlcpy(pass_name, file_name, strlen(file_name)+1);
+  pass_name = strtok_r (pass_name, " ", &save_ptr);
+  
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (fn, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (pass_name, PRI_DEFAULT, start_process, fn_copy);
+  free(pass_name);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -232,12 +236,10 @@ load (const char *file_name, void (**eip) (void), void **esp)
   if (t->pagedir == NULL) 
     goto done;
   process_activate ();
-
-  char * token, *save_ptr;
-  token = strtok_r (file_name, " ", &save_ptr);
   
   /* Open executable file. */
-  file = filesys_open (token);
+  file = filesys_open (t->name);
+  //free(name);
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", file_name);
@@ -452,24 +454,49 @@ setup_stack (void **esp, const char * file_name)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
-        *esp = PHYS_BASE-12;
+        *esp = PHYS_BASE;
       else
         palloc_free_page (kpage);
     }
 
-  char** argv = malloc(strlen(file_name)+1); //fixes the kernel panic that happened before, new kernel panic emerged.
+  char** argv; //fixes the kernel panic that happened before, new kernel panic emerged.
 											 //It may be part of the test and not caused by this. 
 											 //Complete the rest of argument passing before changing this is my suggestion.
-  int argc=0;
-  char *token, *save_ptr;
-  for (token = strtok_r (file_name, " ", &save_ptr); token != NULL;
+  int argc = 0;
+  char * save_ptr, *safe_cpy, *token;
+  safe_cpy = palloc_get_page(0);
+  strlcpy(safe_cpy, file_name, PGSIZE);
+
+  for (token = strtok_r (safe_cpy, " ", &save_ptr); token != NULL;
         token = strtok_r (NULL, " ", &save_ptr)) {
-     printf ("'%s'\n", token);
-     strlcpy(argv[argc], token, strlen(token)+1);
-     printf ("'%s'\n", argv[argc]);
+	 esp = esp - (strlen(token)+1);
+     strlcpy(*esp, token, strlen(token)+1);
+     argv[argc] = esp;
      argc++;
 	}
+	
+  while((int)*esp % 4 != 0)
+  {
+	  *esp = *esp - sizeof(char);
+	  memcpy(*esp, 0, sizeof(char));
+  }
+  
+  for(int i = argc-1; i >= 0; i--){
+	  *esp = *esp - sizeof(char);
+	  memcpy(*esp, &argv[i], sizeof(char));
+  } 
 
+  *esp = *esp - sizeof(char);
+  memcpy(*esp, &argv, sizeof(char));
+  
+  *esp = *esp - sizeof(char);
+  memcpy(*esp,argc,sizeof(char));
+
+  *esp = *esp - sizeof(char);
+  memcpy(*esp,0,sizeof(char));
+
+  free(argv);
+  
   hex_dump(PHYS_BASE - 128, PHYS_BASE - 128, 128, true);
   return success;
 }
