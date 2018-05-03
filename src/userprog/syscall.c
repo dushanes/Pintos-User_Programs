@@ -24,5 +24,23 @@ syscall_handler (struct intr_frame *f UNUSED)
 	  
 	  
   }
+  
+void* 
+is_valid(const void *vaddr)
+{
+	void *temp = pagedir_get_page(thread_current()->pagedir, vaddr);
+	if (!is_user_vaddr(vaddr))
+	{
+		exit_proc(-1);
+		return 0;
+	}
+	if (!temp)
+	{
+		exit_proc(-1);
+		return 0;
+	}
+	return temp;
+}
+  
   thread_exit ();
 }
