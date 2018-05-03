@@ -16,5 +16,13 @@ static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
   printf ("system call!\n");
+  
+  int sys_call = f->esp;
+  switch(sys_call){
+	  
+	  
+	  
+	  
+  }
   thread_exit ();
 }

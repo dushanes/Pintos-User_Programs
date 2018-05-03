@@ -26,11 +26,6 @@ static bool load (char *cmdline, void (**eip) (void), void **esp);
    before process_execute() returns.  Returns the new process's
    thread id, or TID_ERROR if the thread cannot be created. */
 
-struct arguments {
-	char** argv;
-	int argc;
-} arguments;
-
 tid_t
 process_execute (char *file_name) 
 {
