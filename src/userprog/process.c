@@ -19,7 +19,7 @@
 #include "threads/vaddr.h"
 
 static thread_func start_process NO_RETURN;
-static bool load (const char *cmdline, void (**eip) (void), void **esp);
+static bool load (char *cmdline, void (**eip) (void), void **esp);
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -32,7 +32,7 @@ struct arguments {
 } arguments;
 
 tid_t
-process_execute (const char *file_name) 
+process_execute (char *file_name) 
 {
   char *fn_copy;
   tid_t tid;
@@ -42,23 +42,20 @@ process_execute (const char *file_name)
   fn_copy = palloc_get_page (0);
   if (fn_copy == NULL)
     return TID_ERROR;
+    
   strlcpy (fn_copy, file_name, PGSIZE);
 
   char * pass_name;
   char * save_ptr;
   
-  pass_name = palloc_get_page (0);
-  if (pass_name == NULL)
-    return TID_ERROR;
-  strlcpy(pass_name, file_name, strlen(file_name)+1);
-  pass_name = strtok_r (pass_name, " ", &save_ptr);
+  pass_name = strtok_r (file_name, " ", &save_ptr);
+  printf("process execute hello");
   
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (pass_name, PRI_DEFAULT, start_process, fn_copy);
 
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
-    palloc_free_page(pass_name);
   return tid;
 }
 
@@ -214,7 +211,7 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp, const char * file_name);
+static bool setup_stack (void **esp, char * file_name);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -225,7 +222,7 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
    and its initial stack pointer into *ESP.
    Returns true if successful, false otherwise. */
 bool
-load (const char *file_name, void (**eip) (void), void **esp) 
+load (char *file_name, void (**eip) (void), void **esp) 
 {
   struct thread *t = thread_current ();
   struct Elf32_Ehdr ehdr;
@@ -242,7 +239,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   
   /* Open executable file. */
   file = filesys_open (t->name);
-  //free(name);
+  
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", file_name);
@@ -447,7 +444,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
-setup_stack (void **esp, const char * file_name) 
+setup_stack (void **esp, char * file_name) 
 {
   uint8_t *kpage;
   bool success = false;
@@ -462,49 +459,61 @@ setup_stack (void **esp, const char * file_name)
         palloc_free_page (kpage);
     }
 
-  char* argv[PGSIZE]; //fixes the kernel panic that happened before, new kernel panic emerged.
-											 //It may be part of the test and not caused by this. 
-											 //Complete the rest of argument passing before changing this is my suggestion.
+  char* argv[20]; 
+											  
+  printf("\nHELLO1\n");
+  											
   int argc = 0;
-  char * save_ptr, *safe_cpy, *token;
-  safe_cpy = palloc_get_page(0);
-  if (safe_cpy == NULL)
-    return TID_ERROR;
-  strlcpy(safe_cpy, file_name, PGSIZE);
+  char * save_ptr, *token;
   
-  void* esp_copy=*esp;
+  printf("HELLO2\n");											
 
-  for (token = strtok_r (safe_cpy, " ", &save_ptr); token != NULL;
+  //void* esp_copy=*esp;
+
+  for (token = strtok_r (file_name, " ", &save_ptr); token != NULL;
         token = strtok_r (NULL, " ", &save_ptr)) {
-	 *esp = *esp - strlen(token)+1;
-     strlcpy(*esp, token, PGSIZE);
-     argv[argc] = *esp;
+	 *esp = *esp - (strlen(token)+1);
+     strlcpy(*esp, token, (strlen(token)+1));
+     argv[argc] = &(*esp);
      argc++;
+     printf("'%s', count: %d\n", *esp,argc);
 	}
+
   int zero=0;
-  
+  printf("HELLO3\n");											
+
   while((int)*esp % 4 != 0)
-  {
-	  esp_copy = esp_copy - sizeof(char);
-	  memcpy(esp_copy, &zero, sizeof(char));
+  {	  	  
+	  *esp = *esp - sizeof(char);
+	  int char_zero = 0;
+	  memcpy(*esp, &char_zero, sizeof(char));
   }
+    printf("HELLO4\n");
+
+  *esp-=sizeof(int);
+  memcpy(*esp,&zero,sizeof(int));
+  
   
   for(int i = argc-1; i >= 0; i--){
-	  esp_copy= esp_copy - sizeof(int);
-	  memcpy(esp_copy, argv[i], sizeof(int));
+	  *esp= *esp - sizeof(int);
+	  memcpy(*esp, argv[i], sizeof(int));
   } 
+  printf("HELLO5\n");		
+  
+  
+  int save = *esp;									
+  *esp = *esp - sizeof(int);
+  memcpy(*esp, save, sizeof(int));
+  
+  printf("HELLO6\n");											
+  
+  *esp = *esp - sizeof(int);
+  memcpy(*esp,&argc,sizeof(int));
+  printf("HELLO7\n");											
 
-  esp_copy = esp_copy - sizeof(int);
-  memcpy(esp_copy, argv, sizeof(int));
-  
-  esp_copy = esp_copy - sizeof(int);
-  memcpy(esp_copy,&argc,sizeof(int));
-
-  esp_copy = esp_copy - sizeof(int);
-  memcpy(esp_copy,&zero,sizeof(int));
-  
-  
-  
+  *esp = *esp - sizeof(int);
+  memcpy(*esp,&zero,sizeof(int));
+   
   
   hex_dump(PHYS_BASE - 128, PHYS_BASE - 128, 128, true);
   return success;
