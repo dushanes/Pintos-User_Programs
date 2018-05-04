@@ -8,10 +8,17 @@
 #include "lib/kernel/console.h"
 #include "devices/input.h"
 #include "userprog/process.h"
+#include "threads/synch.h"
 
 static void syscall_handler (struct intr_frame *);
 static struct lock file_system_lock;
 void* is_valid(const void *);
+
+void exit(int status);
+int wait(tid_t pid);
+int write(int fd, void* buffer, unsigned size);
+int read(int fd, void* buffer, unsigned size);
+int create (const char *file, unsigned size);
 
 void
 syscall_init (void) 
@@ -51,6 +58,17 @@ syscall_handler (struct intr_frame *f)
 	  break;
 
 	  case SYS_WRITE:
+	  {
+		  int* fd=f->esp+4;
+	      void** buffer=f->esp+8;
+	      unsigned* size=f->esp+12;
+	      is_valid(fd);
+	      is_valid(buffer);
+	      is_valid(size);
+	      lock_acquire(&file_system_lock);
+	      write(*fd, *buffer, *size);
+	      lock_release(&file_system_lock);
+	  }
 	  break;
 	  
 	  case SYS_FILESIZE:
@@ -64,6 +82,16 @@ syscall_handler (struct intr_frame *f)
 	  
 	  case SYS_EXEC:
 	  break;
+	  
+	  case SYS_EXIT:
+	  {	
+		  int* status=f->esp+4;
+		  is_valid(status);
+		  lock_acquire(&file_system_lock);
+		  exit(*status);
+		  lock_release(&file_system_lock);
+	  }
+	  break;
   }
 }
   
@@ -72,8 +100,8 @@ exit(int status){
 	char* b;
 	snprintf(b, "Process terminating with status %d", status);
 	write(STDOUT_FILENO, b, 30);
-	struct thread* t=thread_current();
-	t->ret_status=status;
+	//struct thread* t=thread_current();
+	//t->ret_status=status;
 	thread_exit();
 }
 
@@ -84,7 +112,7 @@ int write(int fd, void* buffer, unsigned size) {
 	
 }
 
-int wait(pid_t pid) {
+int wait(tid_t pid) {
 	
 }
 
@@ -99,7 +127,7 @@ int
 create (const char *file, unsigned size)
 {
   if (!file)
-    return exit(-1);
+    exit(-1);
   return filesys_create (file, size);
 }
   
