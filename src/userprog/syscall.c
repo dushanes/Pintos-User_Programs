@@ -9,8 +9,9 @@
 #include "devices/input.h"
 #include "userprog/process.h"
 
-
 static void syscall_handler (struct intr_frame *);
+static struct lock file_system_lock;
+void* is_valid(const void *);
 
 void
 syscall_init (void) 
@@ -22,8 +23,9 @@ static void
 syscall_handler (struct intr_frame *f) 
 {
   printf ("system call!\n");
+  lock_init(&file_system_lock);
   
-  int sys_call = f->esp;
+  int sys_call = (int)f->esp;
   switch(sys_call){
 	  
 	  case SYS_HALT:
@@ -92,17 +94,20 @@ int read(int fd, void* buffer, unsigned size) {
 	}
 	
 }
+
+int
+create (const char *file, unsigned size)
+{
+  if (!file)
+    return exit(-1);
+  return filesys_create (file, size);
+}
   
 void* 
 is_valid(const void *vaddr)
 {
 	void *temp = pagedir_get_page(thread_current()->pagedir, vaddr);
-	if (!is_user_vaddr(vaddr))
-	{
-		exit(-1);
-		return 0;
-	}
-	if (!temp)
+	if (!is_user_vaddr(vaddr) || !temp)
 	{
 		exit(-1);
 		return 0;
