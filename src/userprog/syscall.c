@@ -55,6 +55,7 @@ syscall_handler (struct intr_frame *f)
 	  break;
 	  
 	  case SYS_READ:
+	  read(f->esp+4, f->esp+8, f->esp+12);
 	  break;
 
 	  case SYS_WRITE:
