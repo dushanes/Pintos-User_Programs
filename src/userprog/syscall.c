@@ -124,10 +124,30 @@ int wait(tid_t pid) {
 }
 
 int read(int fd, void* buffer, unsigned size) {
-	if (fd==STDIN_FILENO) {
-		//(buffer, size);
-	}
 	
+	struct file * _file;
+	int _return = -1;;
+	
+	lock_acquire(&file_system_lock);
+	
+	if (fd == STDIN_FILENO) {
+		for (i = 0; i != size; ++i)
+        *(uint8_t *)(buffer + i) = input_getc ();
+		_return = size;
+		lock_release(&file_system_lock);
+		return _return;
+	}else if(fd == STDOUT_FILENO){
+		lock_release(&file_system_lock);
+		return _return;
+	}else{
+		if(!_file){                     //Incomplete -Dushane
+			lock_release(&file_system_lock);
+			return _return;
+		}
+		_return = file_read(_file, buffer, size);
+		lock_release(&file_system_lock);
+		return _return;
+	}
 }
 
 int
