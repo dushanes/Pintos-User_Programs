@@ -97,9 +97,9 @@ struct thread
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
 	struct list open_files;             // all opened files
-    struct thread *parent;              //parent process
-    struct list child_list;               //all children process
-    struct list_elem child_elem;
+    //struct thread *parent;              //parent process
+    //struct list child_list;               //all children process
+    //struct list_elem child_elem;
 #endif
 
     /* Owned by thread.c. */

@@ -200,7 +200,9 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
-
+#ifdef USERPROG
+  list_init(&t->open_files);
+#endif
   return tid;
 }
 
