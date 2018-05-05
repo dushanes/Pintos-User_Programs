@@ -9,6 +9,9 @@
 #include "devices/input.h"
 #include "userprog/process.h"
 #include "threads/synch.h"
+#include <list.h>
+#include "filesys/file.h"
+#include "filesys/filesys.h"
 
 static void syscall_handler (struct intr_frame *);
 static struct lock file_system_lock;
@@ -60,12 +63,14 @@ syscall_handler (struct intr_frame *f)
 
 	  case SYS_WRITE:
 	  {
+		  is_valid(f->esp+4); //check validity of the pointer before doing anything else -dushane
+	      is_valid(f->esp+8);
+	      is_valid(f->esp+12);
+		  
 		  int* fd=f->esp+4;
 	      void** buffer=f->esp+8;
 	      unsigned* size=f->esp+12;
-	      is_valid(fd);
-	      is_valid(buffer);
-	      is_valid(size);
+
 	      lock_acquire(&file_system_lock);
 	      write(*fd, *buffer, *size);
 	      lock_release(&file_system_lock);
@@ -86,8 +91,9 @@ syscall_handler (struct intr_frame *f)
 	  
 	  case SYS_EXIT:
 	  {	
+		  is_valid(f->esp+4);
 		  int* status=f->esp+4;
-		  is_valid(status);
+		  
 		  lock_acquire(&file_system_lock);
 		  exit(*status);
 		  lock_release(&file_system_lock);
