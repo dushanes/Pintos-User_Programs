@@ -12,16 +12,17 @@
 #include <list.h>
 #include "filesys/file.h"
 #include "filesys/filesys.h"
+#include "pagedir.h"
 
 static void syscall_handler (struct intr_frame *);
 static struct lock file_system_lock;
 void* is_valid(const void *);
 
 void exit(int status);
-int wait(tid_t pid);
 int write(int fd, void* buffer, unsigned size);
 int read(int fd, void* buffer, unsigned size);
 int create (const char *file, unsigned size);
+struct file * find_file(int fd);
 
 struct fd_elem
 {
@@ -50,12 +51,19 @@ syscall_handler (struct intr_frame *f)
 	  break;
 	  
 	  case SYS_WAIT:
+	  is_valid(f->esp+4);
+	  f->eax = process_wait(f->esp+4);
 	  break;
 	  
 	  case SYS_REMOVE:
 	  break;
 	  
 	  case SYS_CREATE:
+	  is_valid(f->esp+4); 
+	  is_valid(f->esp+8);
+	  lock_acquire(&file_system_lock);
+	  create(f->esp+4, f->esp+8);
+	  lock_release(&file_system_lock);
 	  break;
 	  
 	  case SYS_OPEN:
@@ -65,12 +73,16 @@ syscall_handler (struct intr_frame *f)
 	  break;
 	  
 	  case SYS_READ:
+	  is_valid(f->esp+4); 
+	  is_valid(f->esp+8);
+	  is_valid(f->esp+12);
+	  
 	  read(f->esp+4, f->esp+8, f->esp+12);
 	  break;
 
 	  case SYS_WRITE:
 	  {
-		  is_valid(f->esp+4); //check validity of the pointer before doing anything else -dushane
+		  is_valid(f->esp+4); 
 	      is_valid(f->esp+8);
 	      is_valid(f->esp+12);
 		  
@@ -102,7 +114,7 @@ syscall_handler (struct intr_frame *f)
 		  int* status=f->esp+4;
 		  
 		  lock_acquire(&file_system_lock);
-		  exit(*status);
+		  exit(status);
 		  lock_release(&file_system_lock);
 	  }
 	  break;
@@ -114,19 +126,32 @@ exit(int status){
 	char* b;
 	snprintf(b, "Process terminating with status %d", status);
 	write(STDOUT_FILENO, b, 30);
-	//struct thread* t=thread_current();
-	//t->ret_status=status;
+	
+	struct thread* t=thread_current();
+	t->return_status = status;
 	thread_exit();
+	return -1;
 }
 
 int write(int fd, void* buffer, unsigned size) {
+	
+	struct file * _file;
+	int _return = -1;;
+	
 	if (fd==STDOUT_FILENO) {
 		putbuf(buffer, size);
+	}else if (fd == STDIN_FILENO){
+		lock_release(&file_system_lock);
+		return -1;
+	}else{
+		_file = find_file(fd);
+		if(!_file){
+			lock_release(&file_system_lock);
+			return -1;
+		}
+		_return = file_write(_file, buffer, size);
 	}
-	
-}
-
-int wait(tid_t pid) {
+	return -1;
 	
 }
 
@@ -147,7 +172,8 @@ int read(int fd, void* buffer, unsigned size) {
 		lock_release(&file_system_lock);
 		return _return;
 	}else{
-		if(!_file){                     //Incomplete -Dushane
+		_file = find_file(fd);
+		if(!_file){                     
 			lock_release(&file_system_lock);
 			return _return;
 		}
