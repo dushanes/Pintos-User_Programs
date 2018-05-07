@@ -202,6 +202,7 @@ thread_create (const char *name, int priority,
   thread_unblock (t);
 #ifdef USERPROG
   list_init(&t->open_files);
+  sema_init(&t->waiting, 0);
 #endif
   return tid;
 }
@@ -579,6 +580,23 @@ allocate_tid (void)
   lock_release (&tid_lock);
 
   return tid;
+}
+
+struct thread*
+find_thread (tid_t tid)
+{
+	struct thread * _return;
+	struct list_elem *i;
+	struct thread * t = thread_current();
+  
+	for (i = list_begin (&all_list); i != list_end (&all_list); i = list_next (i))
+	{
+		_return = list_entry (i, struct thread, allelem);
+		if (_return->tid == tid)
+			return _return;
+    }
+    
+    return 0;
 }
 
 /* Offset of `stack' member within `struct thread'.

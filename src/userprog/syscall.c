@@ -23,6 +23,13 @@ int write(int fd, void* buffer, unsigned size);
 int read(int fd, void* buffer, unsigned size);
 int create (const char *file, unsigned size);
 
+struct fd_elem
+{
+	int value;
+	struct file * _file;
+	struct list_elem elem;
+}fd_elem;
+
 void
 syscall_init (void) 
 {
@@ -131,7 +138,7 @@ int read(int fd, void* buffer, unsigned size) {
 	lock_acquire(&file_system_lock);
 	
 	if (fd == STDIN_FILENO) {
-		for (i = 0; i != size; ++i)
+		for (int i = 0; i != size; ++i)
         *(uint8_t *)(buffer + i) = input_getc ();
 		_return = size;
 		lock_release(&file_system_lock);
@@ -157,6 +164,8 @@ create (const char *file, unsigned size)
     exit(-1);
   return filesys_create (file, size);
 }
+
+
   
 void* 
 is_valid(const void *vaddr)
@@ -168,6 +177,20 @@ is_valid(const void *vaddr)
 		return 0;
 	}
 	return temp;
+}
+
+struct file *
+find_file(int fd){
+	struct fd_elem * _return;
+	struct list_elem *i;
+	struct thread * t = thread_current();
+  
+	for (i = list_begin (&t->open_files); i != list_end (&t->open_files); i = list_next (i))
+	{
+		_return = list_entry (i, struct fd_elem, elem);
+		if (_return->value == fd)
+			return _return->_file;
+    }
 }
   
  // thread_exit ();

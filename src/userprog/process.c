@@ -98,7 +98,22 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  while (1);
+	struct thread * child = find_thread (child_tid);
+	int temp = -1;
+	
+	if(child->status == THREAD_DYING || !child){
+		child->return_status = -1;
+		return -1;
+	}
+	
+	sema_down(&child->waiting);
+	printf("thread name: %s exit: %d", child->name, child->return_status);
+	
+	if(child->status == THREAD_BLOCKED){
+		thread_unblock(child);
+	}
+	
+	
   return -1;
 }
 
@@ -108,6 +123,10 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+  
+  printf("thread name: %s exit: %d", cur->name, cur->return_status);
+  while (!list_empty (&cur->waiting.waiters))
+    sema_up (&cur->waiting);
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -533,3 +552,6 @@ install_page (void *upage, void *kpage, bool writable)
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
+
+
+
