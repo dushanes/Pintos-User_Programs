@@ -123,11 +123,12 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
-  
-  printf("thread name: %s exit: %d", cur->name, cur->return_status);
-  while (!list_empty (&cur->waiting.waiters))
+  printf("\nname: %s\n", cur->name);
+  printf("thread name: %s exit: %d\n", cur->name, cur->return_status);
+  /*while (!list_empty (&cur->waiting.waiters))
+	printf("Hi1");
     sema_up (&cur->waiting);
-
+	*/
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
@@ -144,6 +145,8 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+    ASSERT(cur->status == THREAD_RUNNING);
+    printf("end");
 }
 
 /* Sets up the CPU for running user code in the current
