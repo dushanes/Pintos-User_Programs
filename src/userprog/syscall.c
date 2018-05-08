@@ -40,12 +40,12 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f) 
 {
-	static int l = 1;
+	static int l = 0;
 	l++;
   printf ("system call!%d", l);
   lock_init(&file_system_lock);
-  int * p = f->esp;
-  int sys_call = *p;
+  int * temp = f->esp;
+  int sys_call = *temp;
   printf("   'System call #%d'\n", sys_call);
   switch(sys_call){
 	  
@@ -54,19 +54,19 @@ syscall_handler (struct intr_frame *f)
 	  break;
 	  
 	  case SYS_WAIT:
-	  is_valid(f->esp+4);
-	  f->eax = process_wait(f->esp+4);
+	  is_valid(temp+1);
+	  f->eax = process_wait(temp+1);
 	  break;
 	  
 	  case SYS_REMOVE:
 	  break;
 	  
 	  case SYS_CREATE:
-	  is_valid(f->esp+4); 
-	  is_valid(f->esp+8);
+	  is_valid(temp+1); 
+	  is_valid(temp+2);
 	  
 	  lock_acquire(&file_system_lock);
-	  create(f->esp+4, f->esp+8);
+	  create(temp+1, temp+2);
 	  lock_release(&file_system_lock);
 	  break;
 	  
@@ -77,25 +77,27 @@ syscall_handler (struct intr_frame *f)
 	  break;
 	  
 	  case SYS_READ:
-	  is_valid(f->esp+4); 
-	  is_valid(f->esp+8);
-	  is_valid(f->esp+12);
+	  is_valid(temp+5); 
+	  is_valid(temp+6);
+	  is_valid(temp+7);
 	  
-	  read(f->esp+4, f->esp+8, f->esp+12);
+	  read(temp+5, temp+6, temp+7);
 	  break;
 
 	  case SYS_WRITE:
 	  {
-		  is_valid(f->esp+1); 
-	      is_valid(f->esp+2);
-	      is_valid(f->esp+3);
+		  is_valid(temp+5); 
+	      is_valid(temp+6);
+	      is_valid(temp+7);
 		  
-		  int* fd=f->esp+1;
-	      void** buffer=f->esp+2;
-	      unsigned* size=f->esp+3;
+		  int *fd = *(temp+5);
+		  printf("mode: %d\n",fd);
+	      void* buffer = *(temp+6);
+		  printf("string: %s\n",buffer);
+	      unsigned* size = *(temp+7);;
 
 	      lock_acquire(&file_system_lock);
-	      write(*fd, *buffer, *size);
+	      write(fd, buffer, size);
 	      lock_release(&file_system_lock);
 	  }
 	  break;
@@ -115,7 +117,7 @@ syscall_handler (struct intr_frame *f)
 	  case SYS_EXIT:
 	  {	
 		  is_valid(f->esp+1);
-		  int status=(*(p+1));
+		  int status=(*(temp+1));
 		  
 		  lock_acquire(&file_system_lock);
 		  exit(status);
