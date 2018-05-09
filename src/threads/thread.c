@@ -294,7 +294,6 @@ thread_exit (void)
      when it calls thread_schedule_tail(). */
   intr_disable ();
   list_remove (&thread_current()->allelem);
-  printf("Test 1");
   thread_current ()->status = THREAD_DYING;
   schedule ();
   NOT_REACHED ();
@@ -563,7 +562,7 @@ schedule (void)
   ASSERT (intr_get_level () == INTR_OFF);
   ASSERT (cur->status != THREAD_RUNNING);
   ASSERT (is_thread (next));
-
+  
   if (cur != next)
     prev = switch_threads (cur, next);
   thread_schedule_tail (prev);
@@ -588,7 +587,6 @@ find_thread (tid_t tid)
 {
 	struct thread * _return;
 	struct list_elem *i;
-	struct thread * t = thread_current();
   
 	for (i = list_begin (&all_list); i != list_end (&all_list); i = list_next (i))
 	{

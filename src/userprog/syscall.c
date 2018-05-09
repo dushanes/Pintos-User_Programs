@@ -44,9 +44,11 @@ syscall_handler (struct intr_frame *f)
 	l++;
   printf ("system call!%d", l);
   lock_init(&file_system_lock);
+  
   int * temp = f->esp;
   int sys_call = *temp;
-  printf("   'System call #%d'\n", sys_call);
+  is_valid(temp);
+  printf("'System call #%d'\n", sys_call);
   switch(sys_call){
 	  
 	  case SYS_HALT:
@@ -62,12 +64,12 @@ syscall_handler (struct intr_frame *f)
 	  break;
 	  
 	  case SYS_CREATE:
-	  is_valid(temp+1); 
+	  /*is_valid(temp+1); 
 	  is_valid(temp+2);
 	  
 	  lock_acquire(&file_system_lock);
 	  create(temp+1, temp+2);
-	  lock_release(&file_system_lock);
+	  lock_release(&file_system_lock);*/
 	  break;
 	  
 	  case SYS_OPEN:
@@ -93,7 +95,7 @@ syscall_handler (struct intr_frame *f)
 		  int *fd = *(temp+5);
 		  printf("mode: %d\n",fd);
 	      void* buffer = *(temp+6);
-		  printf("string: %s\n",buffer);
+		  printf("string: '%s'\n",buffer);
 	      unsigned* size = *(temp+7);;
 
 	      lock_acquire(&file_system_lock);
@@ -129,20 +131,11 @@ syscall_handler (struct intr_frame *f)
   
 void
 exit(int status){
-	printf("Hi 1\n");
-	char* b;
-		printf("Hi 2\n");
-	//snprintf(b, "Process terminating with status %d", status);
-		printf("Hi 3\n");
 
-	//write(STDOUT_FILENO, b, 30);
-		printf("Hi 4\n");
-
-	
 	struct thread* t=thread_current();
 	t->return_status = status;
 	thread_exit();
-	return -1;
+	//return -1;
 }
 
 int write(int fd, void* buffer, unsigned size) {
