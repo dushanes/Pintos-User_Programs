@@ -105,7 +105,7 @@ process_wait (tid_t child_tid UNUSED)
 		return -1;
 	}
 	
-	child->parent_ptr = &t;
+	child->parent_ptr = thread_current();
 	sema_down(&t->waiting);
 	//printf("thread name: %s exit: %d", child->name, child->return_status);
 	
@@ -123,9 +123,9 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
-  printf("thread name: %s exit: %d\n", &cur->name, cur->return_status);
+  printf("%s: exit(%d)\n", &cur->name, cur->return_status);
   
-	while(!list_empty (&cur->waiting.waiters))
+	if(!list_empty (&cur->parent_ptr->waiting.waiters))
 	{
 		sema_up (&cur->parent_ptr->waiting);
 	}
@@ -476,14 +476,10 @@ setup_stack (void **esp, char * file_name)
     }
 
   char* argv[20]; 
-											  
-  printf("\nHELLO1\n");
-  											
+											    											
   int argc = 0;
   char * save_ptr, *token;
   
-  printf("HELLO2\n");											
-
   //void* esp_copy=*esp;
 
   for (token = strtok_r (file_name, " ", &save_ptr); token != NULL;
@@ -492,11 +488,10 @@ setup_stack (void **esp, char * file_name)
      strlcpy(*esp, token, (strlen(token)+1));
      argv[argc] = &(*esp);
      argc++;
-     printf("'%s', count: %d\n", *esp,argc);
+     //printf("'%s', count: %d\n", *esp,argc);
 	}
 
   int zero=0;
-  printf("HELLO3\n");											
 
   while((int)*esp % 4 != 0)
   {	  	  
@@ -504,7 +499,6 @@ setup_stack (void **esp, char * file_name)
 	  int char_zero = 0;
 	  memcpy(*esp, &char_zero, sizeof(char));
   }
-    printf("HELLO4\n");
 
   *esp-=sizeof(int);
   memcpy(*esp,&zero,sizeof(int));
@@ -514,24 +508,21 @@ setup_stack (void **esp, char * file_name)
 	  *esp= *esp - sizeof(int);
 	  memcpy(*esp, argv[i], sizeof(int));
   } 
-  printf("HELLO5\n");		
   
   
   int save = *esp;									
   *esp = *esp - sizeof(int);
   memcpy(*esp, save, sizeof(int));
   
-  printf("HELLO6\n");											
   
   *esp = *esp - sizeof(int);
   memcpy(*esp,&argc,sizeof(int));
-  printf("HELLO7\n");											
 
   *esp = *esp - sizeof(int);
   memcpy(*esp,&zero,sizeof(int));
    
   
-  hex_dump(PHYS_BASE - 128, PHYS_BASE - 128, 128, true);
+  //hex_dump(PHYS_BASE - 128, PHYS_BASE - 128, 128, true);
   return success;
 }
 

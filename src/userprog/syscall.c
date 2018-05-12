@@ -40,14 +40,12 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f) 
 {
-
-  printf ("system call!\n");
   lock_init(&file_system_lock);
   
   int * temp = f->esp;
   int sys_call = *temp;
   is_valid(temp);
-  printf("'System call #%d'\n", sys_call);
+  //printf("'System call #%d'\n", sys_call);
   switch(sys_call){
 	  
 	  case SYS_HALT:
@@ -87,19 +85,19 @@ syscall_handler (struct intr_frame *f)
 
 	  case SYS_WRITE:
 	  {
-		  /*is_valid(temp+5); 
+		  is_valid(temp+5); 
 	      is_valid(temp+6);
 	      is_valid(temp+7);
 		  
 		  int *fd = *(temp+5);
-		  printf("mode: %d\n",fd);
+		  //printf("mode: %d\n",fd);
 	      void* buffer = *(temp+6);
-		  printf("string: '%s'\n",buffer);
-	      unsigned* size = *(temp+7);;
+		  //printf("\nstring: %s\n",buffer);
+	      unsigned* size = *(temp+7);
 
 	      lock_acquire(&file_system_lock);
-	      write(fd, buffer, size);
-	      lock_release(&file_system_lock);*/
+	      write(*(temp+5), *(temp+6), *(temp+7));
+	      lock_release(&file_system_lock);
 	  }
 	  break;
 	  
