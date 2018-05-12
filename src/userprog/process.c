@@ -44,7 +44,6 @@ process_execute (char *file_name)
   char * save_ptr;
   
   pass_name = strtok_r (file_name, " ", &save_ptr);
-  printf("process execute hello");
   
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (pass_name, PRI_DEFAULT, start_process, fn_copy);
@@ -99,14 +98,16 @@ int
 process_wait (tid_t child_tid UNUSED) 
 {
 	struct thread * child = find_thread (child_tid);
+	struct thread * t = thread_current();
 	
 	if(child->status == THREAD_DYING || !child){
 		child->return_status = -1;
 		return -1;
 	}
 	
-	sema_down(&child->waiting);
-	printf("thread name: %s exit: %d", child->name, child->return_status);
+	child->parent_ptr = &t;
+	sema_down(&t->waiting);
+	//printf("thread name: %s exit: %d", child->name, child->return_status);
 	
 	if(child->status == THREAD_BLOCKED){
 		thread_unblock(child);
@@ -122,13 +123,12 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
-  printf("thread name: %s exit: %d\n", cur->name, cur->return_status);
+  printf("thread name: %s exit: %d\n", &cur->name, cur->return_status);
   
-  while (!list_empty (&cur->waiting.waiters))
-  {
-	printf("Hi1");
-    sema_up (&cur->waiting);
-  }
+	while(!list_empty (&cur->waiting.waiters))
+	{
+		sema_up (&cur->parent_ptr->waiting);
+	}
 	
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */

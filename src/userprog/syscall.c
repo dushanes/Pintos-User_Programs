@@ -40,9 +40,8 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f) 
 {
-	static int l = 0;
-	l++;
-  printf ("system call!%d", l);
+
+  printf ("system call!\n");
   lock_init(&file_system_lock);
   
   int * temp = f->esp;
@@ -83,12 +82,12 @@ syscall_handler (struct intr_frame *f)
 	  is_valid(temp+6);
 	  is_valid(temp+7);
 	  
-	  read(temp+5, temp+6, temp+7);
+	  read(*(temp+5), *(temp+6), *(temp+7));
 	  break;
 
 	  case SYS_WRITE:
 	  {
-		  is_valid(temp+5); 
+		  /*is_valid(temp+5); 
 	      is_valid(temp+6);
 	      is_valid(temp+7);
 		  
@@ -100,7 +99,7 @@ syscall_handler (struct intr_frame *f)
 
 	      lock_acquire(&file_system_lock);
 	      write(fd, buffer, size);
-	      lock_release(&file_system_lock);
+	      lock_release(&file_system_lock);*/
 	  }
 	  break;
 	  
@@ -119,10 +118,9 @@ syscall_handler (struct intr_frame *f)
 	  case SYS_EXIT:
 	  {	
 		  is_valid(f->esp+1);
-		  int status=(*(temp+1));
 		  
 		  lock_acquire(&file_system_lock);
-		  exit(status);
+		  exit(*(temp+1));
 		  lock_release(&file_system_lock);
 	  }
 	  break;
@@ -134,6 +132,7 @@ exit(int status){
 
 	struct thread* t=thread_current();
 	t->return_status = status;
+	
 	thread_exit();
 	//return -1;
 }
@@ -141,7 +140,6 @@ exit(int status){
 int write(int fd, void* buffer, unsigned size) {
 	
 	struct file * _file;
-	int _return = -1;;
 	
 	if (fd==STDOUT_FILENO) {
 		putbuf(buffer, size);
@@ -154,7 +152,7 @@ int write(int fd, void* buffer, unsigned size) {
 			lock_release(&file_system_lock);
 			return -1;
 		}
-		_return = file_write(_file, buffer, size);
+		return file_write(_file, buffer, size);
 	}
 	return -1;
 	
@@ -168,7 +166,7 @@ int read(int fd, void* buffer, unsigned size) {
 	lock_acquire(&file_system_lock);
 	
 	if (fd == STDIN_FILENO) {
-		for (int i = 0; i != size; ++i)
+		for (int i = 0; i != (int)size; ++i)
         *(uint8_t *)(buffer + i) = input_getc ();
 		_return = size;
 		lock_release(&file_system_lock);
