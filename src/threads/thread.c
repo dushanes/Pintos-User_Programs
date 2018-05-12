@@ -202,7 +202,6 @@ thread_create (const char *name, int priority,
   thread_unblock (t);
 #ifdef USERPROG
   list_init(&t->open_files);
-  sema_init(&t->waiting, 0);
 #endif
   return tid;
 }
@@ -466,6 +465,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+  sema_init(&t->waiting, 0);
+
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);

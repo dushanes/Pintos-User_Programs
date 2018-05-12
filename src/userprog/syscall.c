@@ -46,6 +46,7 @@ syscall_handler (struct intr_frame *f)
   int sys_call = *temp;
   is_valid(temp);
   //printf("'System call #%d'\n", sys_call);
+  hex_dump(temp, temp, 128, true);
   switch(sys_call){
 	  
 	  case SYS_HALT:

@@ -100,6 +100,7 @@ struct thread
     struct semaphore waiting;
     uint32_t *pagedir;                  /* Page directory. */
 	struct list open_files;             // all opened files
+	struct thread * parent_ptr;
     //struct thread *parent;              //parent process
     struct list child_list;               //all children process
     //struct list_elem child_elem;
