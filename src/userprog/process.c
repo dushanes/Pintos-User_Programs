@@ -476,41 +476,58 @@ setup_stack (void **esp, char * file_name)
     }
 
   char* argv[20]; 
+  char *rev[20][20];
 											    											
   int argc = 0;
   char * save_ptr, *token;
-  
+  int i = 0;
   //void* esp_copy=*esp;
 
   for (token = strtok_r (file_name, " ", &save_ptr); token != NULL;
         token = strtok_r (NULL, " ", &save_ptr)) {
-	 *esp = *esp - (strlen(token)+1);
-     strlcpy(*esp, token, (strlen(token)+1));
-     argv[argc] = &(*esp);
+     memcpy(&rev[i], token, (strlen(token)+1));
+
+     //strlcpy(*esp, token, (strlen(token)+1));
+     //argv[argc] = &(*esp);
      argc++;
      //printf("'%s', count: %d\n", *esp,argc);
+     i++;
 	}
+	i--;
+  int j = 0;
+  
+  while( i >= 0)
+  {
+	  *esp = *esp - (strlen(&rev[i])+1);
+	  //strlcpy(&argv[j], &rev[i], (strlen(&rev[i])+1));
+	  
+	  strlcpy(*esp, &rev[i], (strlen(&rev[i])+1));
+      argv[j] = esp;
+
+	  i--;
+	  j++;	  
+  }
 
   int zero=0;
 
   while((int)*esp % 4 != 0)
   {	  	  
 	  *esp = *esp - sizeof(char);
-	  int char_zero = 0;
+	  char char_zero = 0;
 	  memcpy(*esp, &char_zero, sizeof(char));
   }
 
   *esp-=sizeof(int);
   memcpy(*esp,&zero,sizeof(int));
   
-  
-  for(int i = argc-1; i >= 0; i--){
+  printf("%s\n", *esp);
+  for(int i = argc-1; i >= 1; i--){
 	  *esp= *esp - sizeof(int);
 	  memcpy(*esp, argv[i], sizeof(int));
   } 
   
-  
-  int save = *esp;									
+  /*
+  int save = esp;									
   *esp = *esp - sizeof(int);
   memcpy(*esp, save, sizeof(int));
   
@@ -520,9 +537,9 @@ setup_stack (void **esp, char * file_name)
 
   *esp = *esp - sizeof(int);
   memcpy(*esp,&zero,sizeof(int));
-   
+   */
   
-  //hex_dump(PHYS_BASE - 128, PHYS_BASE - 128, 128, true);
+  hex_dump(PHYS_BASE - 128, PHYS_BASE - 128, 128, true);
   return success;
 }
 
