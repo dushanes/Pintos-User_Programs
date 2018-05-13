@@ -97,7 +97,7 @@ syscall_handler (struct intr_frame *f)
 	  is_valid(temp+5); 
 	  is_valid(temp+6);
 	  is_valid(temp+7);
-	  
+	  is_valid((*temp+7));
 	  f->eax = read(*(temp+5), *(temp+6), *(temp+7));
 	  break;
 
@@ -106,6 +106,7 @@ syscall_handler (struct intr_frame *f)
 		  is_valid(temp+5); 
 	      is_valid(temp+6);
 	      is_valid(temp+7);
+		  is_valid(*(temp+6));
 		  
 	      lock_acquire(&file_system_lock);
 	      write(*(temp+5), *(temp+6), *(temp+7));
@@ -230,7 +231,7 @@ int read(int fd, void* buffer, unsigned size) {
 int
 create (const char *file, unsigned size)
 {
-  if (!file || size == 0)
+  if (!file)
     return -1;
     
   return filesys_create (file, size);
