@@ -475,7 +475,7 @@ setup_stack (void **esp, char * file_name)
         palloc_free_page (kpage);
     }
 
-  char* argv[20]; 
+  char** argv[20]; 
   char *rev[20][20];
 											    											
   int argc = 0;
@@ -493,16 +493,16 @@ setup_stack (void **esp, char * file_name)
      //printf("'%s', count: %d\n", *esp,argc);
      i++;
 	}
-	i--;
+  i--;
   int j = 0;
   
   while( i >= 0)
   {
-	  *esp = *esp - (strlen(&rev[i])+1);
+	  *esp -= (strlen(&rev[i])+1);
 	  //strlcpy(&argv[j], &rev[i], (strlen(&rev[i])+1));
 	  
 	  strlcpy(*esp, &rev[i], (strlen(&rev[i])+1));
-      argv[j] = esp;
+      argv[j] = *esp;
 
 	  i--;
 	  j++;	  
@@ -512,24 +512,23 @@ setup_stack (void **esp, char * file_name)
 
   while((int)*esp % 4 != 0)
   {	  	  
-	  *esp = *esp - sizeof(char);
+	  *esp -= sizeof(char);
 	  char char_zero = 0;
 	  memcpy(*esp, &char_zero, sizeof(char));
   }
 
-  *esp-=sizeof(int);
+  *esp -= sizeof(int);
   memcpy(*esp,&zero,sizeof(int));
   
-  printf("%s\n", *esp);
-  for(int i = argc-1; i >= 1; i--){
-	  *esp= *esp - sizeof(int);
-	  memcpy(*esp, argv[i], sizeof(int));
+  for(int i = 0; i <= argc-1; i++){
+	  *esp -= sizeof(int);
+	  memcpy(*esp, &argv[i], sizeof(int));
   } 
   
-  /*
-  int save = esp;									
+  
+  int save = *esp;									
   *esp = *esp - sizeof(int);
-  memcpy(*esp, save, sizeof(int));
+  memcpy(*esp, &save, sizeof(int));
   
   
   *esp = *esp - sizeof(int);
@@ -537,9 +536,9 @@ setup_stack (void **esp, char * file_name)
 
   *esp = *esp - sizeof(int);
   memcpy(*esp,&zero,sizeof(int));
-   */
+   
   
-  hex_dump(PHYS_BASE - 128, PHYS_BASE - 128, 128, true);
+  //hex_dump(PHYS_BASE - 128, PHYS_BASE - 128, 128, true);
   return success;
 }
 
