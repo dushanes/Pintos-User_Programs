@@ -23,6 +23,8 @@ int write(int fd, void* buffer, unsigned size);
 int read(int fd, void* buffer, unsigned size);
 int create (const char *file, unsigned size);
 struct file * find_file(int fd);
+bool remove (const char *file);
+int open(const char * file);
 
 struct fd_elem
 {
@@ -59,21 +61,30 @@ syscall_handler (struct intr_frame *f)
 	  break;
 	  
 	  case SYS_REMOVE:
+	  is_valid(temp+1);
+	  f->eax = remove(*(temp+1));
 	  break;
 	  
 	  case SYS_CREATE:
-	  /*is_valid(temp+1); 
-	  is_valid(temp+2);
+	  is_valid(temp+4); 
+	  is_valid(temp+5);
+	  is_valid(*(temp+4));
+	  int _return = false;
 	  
 	  lock_acquire(&file_system_lock);
-	  create(temp+1, temp+2);
-	  lock_release(&file_system_lock);*/
+	  _return = create(*(temp+4), *(temp+5));
+	  lock_release(&file_system_lock);
+	  f->eax = _return;
 	  break;
 	  
 	  case SYS_OPEN:
+	  is_valid(temp+1);
+	  is_valid(*(temp+1));
+	  f->eax = open(*(temp+1));
 	  break;
 	  
 	  case SYS_CLOSE:
+	  is_valid(temp+1);
 	  break;
 	  
 	  case SYS_READ:
@@ -81,7 +92,7 @@ syscall_handler (struct intr_frame *f)
 	  is_valid(temp+6);
 	  is_valid(temp+7);
 	  
-	  read(*(temp+5), *(temp+6), *(temp+7));
+	  f->eax = read(*(temp+5), *(temp+6), *(temp+7));
 	  break;
 
 	  case SYS_WRITE:
@@ -90,12 +101,6 @@ syscall_handler (struct intr_frame *f)
 	      is_valid(temp+6);
 	      is_valid(temp+7);
 		  
-		  int *fd = *(temp+5);
-		  //printf("mode: %d\n",fd);
-	      void* buffer = *(temp+6);
-		  //printf("\nstring: %s\n",buffer);
-	      unsigned* size = *(temp+7);
-
 	      lock_acquire(&file_system_lock);
 	      write(*(temp+5), *(temp+6), *(temp+7));
 	      lock_release(&file_system_lock);
@@ -112,6 +117,8 @@ syscall_handler (struct intr_frame *f)
 	  break;
 	  
 	  case SYS_EXEC:
+	  return -1;
+	  f->eax = -1;
 	  break;
 	  
 	  case SYS_EXIT:
@@ -140,6 +147,11 @@ int write(int fd, void* buffer, unsigned size) {
 	
 	struct file * _file;
 	
+	if(size == 0)
+	{
+		return 0;
+	}
+	
 	if (fd==STDOUT_FILENO) {
 		putbuf(buffer, size);
 	}else if (fd == STDIN_FILENO){
@@ -163,6 +175,11 @@ int read(int fd, void* buffer, unsigned size) {
 	int _return = -1;;
 	
 	lock_acquire(&file_system_lock);
+	
+	if(size == 0)
+	{
+		return 0;
+	}
 	
 	if (fd == STDIN_FILENO) {
 		for (int i = 0; i != (int)size; ++i)
@@ -188,9 +205,46 @@ int read(int fd, void* buffer, unsigned size) {
 int
 create (const char *file, unsigned size)
 {
-  if (!file)
-    exit(-1);
+  if (!file || size == 0)
+    return -1;
+    
   return filesys_create (file, size);
+}
+
+int open(const char * file)
+{
+	static int _return_fd = 1;
+	struct file* _file = NULL;
+	if(file == NULL)
+	{
+		return -1;
+	}
+	
+	lock_acquire(&file_system_lock);
+	_file = filesys_open (file);
+	_return_fd++;
+	lock_release(&file_system_lock);
+	
+	if(_file == NULL)
+	{
+		return -1;
+	}
+	return _return_fd;
+}
+
+bool
+remove (const char *file)
+{
+	bool _return;
+	if(file == NULL)
+	{
+		return false;
+	}
+	
+	lock_acquire(&file_system_lock);
+	_return = filesys_remove (file);
+	lock_release(&file_system_lock);
+	return _return;
 }
 
 

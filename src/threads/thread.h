@@ -96,6 +96,7 @@ struct thread
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
+    int p_waited;
     int return_status;
     struct semaphore waiting;
     uint32_t *pagedir;                  /* Page directory. */

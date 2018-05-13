@@ -104,8 +104,8 @@ process_wait (tid_t child_tid UNUSED)
 		child->return_status = -1;
 		return -1;
 	}
-	
 	child->parent_ptr = thread_current();
+	child->p_waited = 1;
 	sema_down(&t->waiting);
 	//printf("thread name: %s exit: %d", child->name, child->return_status);
 	
@@ -124,11 +124,12 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
   printf("%s: exit(%d)\n", &cur->name, cur->return_status);
-  
-	if(!list_empty (&cur->parent_ptr->waiting.waiters))
-	{
-		sema_up (&cur->parent_ptr->waiting);
-	}
+
+  if(!list_empty (&cur->parent_ptr->waiting.waiters))
+  {
+	 sema_up (&cur->parent_ptr->waiting);
+  }
+
 	
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -475,8 +476,8 @@ setup_stack (void **esp, char * file_name)
         palloc_free_page (kpage);
     }
 
-  char** argv[20]; 
-  char *rev[20][20];
+  char** argv[30]; 
+  char *rev[30][20];
 											    											
   int argc = 0;
   char * save_ptr, *token;
