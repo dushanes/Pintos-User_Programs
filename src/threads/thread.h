@@ -105,6 +105,7 @@ struct thread
     //struct thread *parent;              //parent process
     struct list child_list;               //all children process
     //struct list_elem child_elem;
+    //struct semaphore exec;
 #endif
 
     /* Owned by thread.c. */

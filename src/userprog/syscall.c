@@ -25,6 +25,7 @@ int create (const char *file, unsigned size);
 struct file * find_file(int fd);
 bool remove (const char *file);
 int open(const char * file);
+void close(int fd);
 
 struct fd_elem
 {
@@ -57,7 +58,7 @@ syscall_handler (struct intr_frame *f)
 	  
 	  case SYS_WAIT:
 	  is_valid(temp+1);
-	  f->eax = process_wait(temp+1);
+	  f->eax = process_wait(*(temp+1));
 	  break;
 	  
 	  case SYS_REMOVE:
@@ -85,6 +86,11 @@ syscall_handler (struct intr_frame *f)
 	  
 	  case SYS_CLOSE:
 	  is_valid(temp+1);
+	  //is_valid(*(temp+1));
+	  //lock_acquire(&file_system_lock);
+      //close(*(temp+1));
+      //lock_release(&file_system_lock);
+
 	  break;
 	  
 	  case SYS_READ:
@@ -108,22 +114,41 @@ syscall_handler (struct intr_frame *f)
 	  break;
 	  
 	  case SYS_FILESIZE:
+	  is_valid(temp+1);
+	  lock_acquire(&file_system_lock);
+      f->eax=file_length(*(temp+1));
+      lock_release(&file_system_lock);
+
 	  break;
 	  
 	  case SYS_SEEK:
+	  is_valid(temp+4);
+      is_valid(temp+5);
+      lock_acquire(&file_system_lock);
+      file_seek(*(temp+4),*(temp+5));
+      lock_release(&file_system_lock);
+
 	  break;
 	  
 	  case SYS_TELL:
+	  is_valid(temp+1);
+      lock_acquire(&file_system_lock);
+      f->eax=file_tell(*(temp+1));
+      lock_release(&file_system_lock);
+
 	  break;
 	  
 	  case SYS_EXEC:
-	  return -1;
-	  f->eax = -1;
+	  is_valid(temp+1);
+	  is_valid(*(temp+1));
+	  lock_acquire(&file_system_lock);
+	  f->eax=process_execute(*(temp+1));
+	  lock_release(&file_system_lock);
 	  break;
 	  
 	  case SYS_EXIT:
 	  {	
-		  is_valid(f->esp+1);
+		  is_valid(temp+1);
 		  
 		  lock_acquire(&file_system_lock);
 		  exit(*(temp+1));
@@ -274,6 +299,13 @@ find_file(int fd){
 			return _return->_file;
     }
 }
+
+void close(int fd) {
+ struct file* f=find_file(fd);
+ //if (f==NULL) return -1;
+ file_close(f);
+}
+
   
  // thread_exit ();
 //}

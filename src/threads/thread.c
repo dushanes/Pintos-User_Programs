@@ -182,6 +182,7 @@ thread_create (const char *name, int priority,
   /* Initialize thread. */
   init_thread (t, name, priority);
   tid = t->tid = allocate_tid ();
+  //sema_down(&t->exec);
 
   /* Stack frame for kernel_thread(). */
   kf = alloc_frame (t, sizeof *kf);
@@ -467,6 +468,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
   sema_init(&t->waiting, 0);
   t->p_waited = 0;
+  //sema_init(&t->exec, 0);
 
 
   old_level = intr_disable ();
