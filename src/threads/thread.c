@@ -468,6 +468,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
   sema_init(&t->waiting, 0);
   t->p_waited = 0;
+  list_init(&t->open_files);
   //sema_init(&t->exec, 0);
 
 

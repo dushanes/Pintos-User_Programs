@@ -31,7 +31,7 @@ struct fd_elem
 {
 	int value;
 	struct file * _file;
-	struct list_elem elem;
+	struct list_elem *elem;
 }fd_elem;
 
 void
@@ -109,7 +109,7 @@ syscall_handler (struct intr_frame *f)
 		  is_valid(*(temp+6));
 		  
 	      lock_acquire(&file_system_lock);
-	      write(*(temp+5), *(temp+6), *(temp+7));
+	      f->eax = write(*(temp+5), *(temp+6), *(temp+7));
 	      lock_release(&file_system_lock);
 	  }
 	  break;
@@ -172,7 +172,7 @@ exit(int status){
 int write(int fd, void* buffer, unsigned size) {
 	
 	struct file * _file;
-	
+	//printf("-------%d-------", size);
 	if(size == 0)
 	{
 		return 0;
@@ -241,6 +241,11 @@ int open(const char * file)
 {
 	static int _return_fd = 1;
 	struct file* _file = NULL;
+	struct fd_elem *my_file;
+	my_file->_file = _file;
+	my_file->value = _return_fd;
+	struct thread * t = thread_current();
+	
 	if(file == NULL)
 	{
 		return -1;
@@ -255,6 +260,7 @@ int open(const char * file)
 	{
 		return -1;
 	}
+	//list_push_back(&t->open_files, my_file->elem);   
 	return _return_fd;
 }
 
@@ -293,12 +299,12 @@ find_file(int fd){
 	struct list_elem *i;
 	struct thread * t = thread_current();
   
-	for (i = list_begin (&t->open_files); i != list_end (&t->open_files); i = list_next (i))
+	/*for (i = list_begin (&t->open_files); i != list_end (&t->open_files); i = list_next (i))
 	{
 		_return = list_entry (i, struct fd_elem, elem);
 		if (_return->value == fd)
 			return _return->_file;
-    }
+    }*/
 }
 
 void close(int fd) {
