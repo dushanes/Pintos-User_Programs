@@ -181,12 +181,12 @@ int write(int fd, void* buffer, unsigned size) {
 	if (fd==STDOUT_FILENO) {
 		putbuf(buffer, size);
 	}else if (fd == STDIN_FILENO){
-		lock_release(&file_system_lock);
+		//lock_release(&file_system_lock);
 		return -1;
 	}else{
 		_file = find_file(fd);
 		if(!_file){
-			lock_release(&file_system_lock);
+			//lock_release(&file_system_lock);
 			return -1;
 		}
 		return file_write(_file, buffer, size);
@@ -241,10 +241,10 @@ int open(const char * file)
 {
 	static int _return_fd = 1;
 	struct file* _file = NULL;
-	struct fd_elem *my_file;
-	my_file->_file = _file;
-	my_file->value = _return_fd;
-	struct thread * t = thread_current();
+	//struct fd_elem *my_file;
+	//my_file->_file = _file;
+	//my_file->value = _return_fd;
+	//struct thread * t = thread_current();
 	
 	if(file == NULL)
 	{

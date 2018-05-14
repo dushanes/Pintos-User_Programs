@@ -106,6 +106,7 @@ struct thread
     struct list child_list;               //all children process
     //struct list_elem child_elem;
     //struct semaphore exec;
+    int wait_succes;
 #endif
 
     /* Owned by thread.c. */

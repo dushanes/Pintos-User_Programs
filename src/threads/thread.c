@@ -470,6 +470,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->p_waited = 0;
   list_init(&t->open_files);
   //sema_init(&t->exec, 0);
+  t->wait_succes=0;
 
 
   old_level = intr_disable ();
